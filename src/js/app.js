@@ -51,7 +51,7 @@ function normalizeUser(user, index) {
   };
 }
 
-// Завдання 1: Форматування та об'єднання
+// Завдання 1
 export function formatTeachers(primUsers = randomUserMock, secUsers = additionalUsers) {
   const map = new Map();
   const allUsers = [...primUsers, ...secUsers];
@@ -68,7 +68,7 @@ export function formatTeachers(primUsers = randomUserMock, secUsers = additional
   return Array.from(map.values());
 }
 
-// Завдання 2: Валідація
+// Завдання 2
 const phoneFormats = {
   Germany: /^\d{4}-\d{7}$/,
   Ireland: /^\d{3}-\d{3}-\d{4}$/,
@@ -128,7 +128,7 @@ export function validateTeacher(teacher) {
   return true;
 }
 
-// Завдання 3: Фільтрація (Логічне "І")
+// Завдання 3: Фільтрація
 export function filterTeachers(teachers, filters = {}) {
   if (!Array.isArray(teachers)) return [];
 
@@ -200,7 +200,7 @@ export function getTeacherPercentage(teachers, condition) {
   const matched = teachers.filter((teacher) => {
     if (typeof condition === "function") {
       return condition(teacher);
-    }
+    } 
     const q = String(condition).toLowerCase();
     return (
       teacher.full_name?.toLowerCase()?.includes(q) ||
