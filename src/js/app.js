@@ -1,14 +1,19 @@
-import { randomUserMock, additionalUsers } from "./mock-data.js";
-
 export const COURSES = [
   "Mathematics", "Physics", "English", "Computer Science",
   "Dancing", "Chess", "Biology", "Chemistry",
   "Law", "Art", "Medicine", "Statistics"
 ];
 
-function getRandomCourse() {
-  const index = Math.floor(Math.random() * COURSES.length);
-  return COURSES[index];
+/**
+ * API не повертає спеціальність, тож призначаємо її самі. Робимо це детерміновано
+ * (хеш від id): той самий викладач завжди має ту саму спеціальність після перезавантаження.
+ */
+function pickCourse(seed) {
+  let hash = 0;
+  for (const char of String(seed)) {
+    hash = (hash * 31 + char.codePointAt(0)) >>> 0;
+  }
+  return COURSES[hash % COURSES.length];
 }
 
 /**
@@ -34,8 +39,8 @@ function normalizeUser(user, index) {
   const fullName = user.full_name || (user.name ? `${user.name.first} ${user.name.last}` : null);
   const bDate = user.b_date || user.b_day || user.dob?.date || null;
   const age = typeof user.age === "number" ? user.age : (user.dob?.age ?? calculateAge(bDate));
-  const course = user.course || getRandomCourse();
   const id = user.id?.value || (typeof user.id === "string" ? user.id : user.login?.uuid || `user_${index + 1}`);
+  const course = user.course || pickCourse(id);
 
   return {
     id,
@@ -62,7 +67,7 @@ function normalizeUser(user, index) {
 }
 
 // Завдання 1
-export function formatTeachers(primUsers = randomUserMock, secUsers = additionalUsers) {
+export function formatTeachers(primUsers = [], secUsers = []) {
   const map = new Map();
   const allUsers = [...primUsers, ...secUsers];
 
@@ -348,4 +353,67 @@ export function createTeacher(input, existingTeachers = []) {
   return Object.keys(errors).length > 0
     ? { teacher: null, errors }
     : { teacher: draft, errors: {} };
+}
+
+// Дані з API
+
+/**
+ * Повний шлях сирих даних API до готових викладачів:
+ * нормалізація -> видалення дублікатів -> валідація.
+ * Невалідні записи не потрапляють у список, але повертаються окремо (для логів і статистики).
+ */
+export function ingestUsers(rawUsers) {
+  const teachers = [];
+  const rejected = [];
+
+  for (const teacher of formatTeachers(Array.isArray(rawUsers) ? rawUsers : [])) {
+    const errors = getTeacherErrors(teacher);
+    if (Object.keys(errors).length === 0) {
+      teachers.push(teacher);
+    } else {
+      rejected.push({ teacher, errors });
+    }
+  }
+
+  return { teachers, rejected };
+}
+
+/**
+ * Додає нових викладачів до наявних, пропускаючи дублікати (за id та за іменем).
+ * Нічого не мутує. Повертає { merged, added }.
+ */
+export function mergeUniqueTeachers(existing, incoming) {
+  const ids = new Set(existing.map((t) => String(t.id)));
+  const names = new Set(existing.map((t) => t.full_name?.toLowerCase()).filter(Boolean));
+  const added = [];
+
+  for (const teacher of incoming) {
+    const name = teacher.full_name?.toLowerCase();
+    if (ids.has(String(teacher.id)) || (name && names.has(name))) continue;
+
+    ids.add(String(teacher.id));
+    if (name) names.add(name);
+    added.push(teacher);
+  }
+
+  return { merged: [...existing, ...added], added };
+}
+
+// Статистика
+/**
+ * Зведена статистика для блоку Statistics.
+ * visible — викладачі після фільтрів і пошуку, all — усі завантажені.
+ */
+export function calculateStatistics(visible, all) {
+  const ages = visible.map((t) => t.age).filter((age) => typeof age === "number");
+  const averageAge = ages.length > 0
+    ? Math.round((ages.reduce((sum, age) => sum + age, 0) / ages.length) * 10) / 10
+    : null;
+
+  return {
+    total: all.length,
+    shown: visible.length,
+    averageAge,
+    favoritesPercent: getTeacherPercentage(visible, (t) => t.favorite),
+  };
 }

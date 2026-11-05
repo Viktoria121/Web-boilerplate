@@ -66,6 +66,24 @@ export function renderFavorites(container, teachers) {
   renderCards(container, teachers, { showSubject: false }, "No favorites yet. Open a teacher and press the star to add one.");
 }
 
+/* ---------- Стани завантаження ---------- */
+
+export function renderLoading(container) {
+  container.replaceChildren(el("p", { className: "empty-state", text: "Loading teachers…" }));
+}
+
+export function renderLoadError(container, message, onRetry) {
+  const retry = el("button", { className: "retry-button", text: "Try again", attrs: { type: "button" } });
+  retry.addEventListener("click", onRetry);
+
+  container.replaceChildren(
+    el("div", { className: "error-state", attrs: { role: "alert" } }, [
+      el("p", { text: `Could not load teachers. ${message}` }),
+      retry,
+    ])
+  );
+}
+
 /* ---------- Статистика ---------- */
 
 export function renderStatistics(tbody, teachers) {
@@ -85,6 +103,27 @@ export function renderStatistics(tbody, teachers) {
     ])
   );
   tbody.replaceChildren(...rows);
+}
+
+/**
+ * Зведення над таблицею. Оновлюється при кожній зміні даних:
+ * фільтри, пошук, догрузка з API, додавання викладача, зміна вибраних.
+ */
+export function renderStatisticsSummary(container, stats) {
+  const item = (label, value) =>
+    el("p", { className: "statistics-summary-item" }, [
+      document.createTextNode(`${label}: `),
+      el("strong", { text: String(value) }),
+    ]);
+
+  const items = [
+    item("Teachers shown", `${stats.shown} of ${stats.total}`),
+    item("Average age", stats.averageAge ?? "—"),
+    item("Favorites", `${stats.favoritesPercent}%`),
+  ];
+  if (stats.rejected > 0) items.push(item("Skipped as invalid", stats.rejected));
+
+  container.replaceChildren(...items);
 }
 
 export function renderSortState(headers, sort) {

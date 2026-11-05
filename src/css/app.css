@@ -895,6 +895,71 @@ body.has-popup {
     }
 }
 
+/* === LOAD MORE ("Next") === */
+.load-more-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 35px;
+}
+
+.load-more,
+.retry-button {
+    padding: 12px 28px;
+    background-color: var(--buttons-background-color);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.load-more:hover:not(:disabled),
+.retry-button:hover {
+    background-color: var(--accent-hover-color);
+    border-color: var(--accent-hover-color);
+    color: var(--button-text-color-hover);
+}
+
+.load-more:disabled,
+.popup-submit:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+/* === LOAD ERROR === */
+.error-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 30px 10px;
+    text-align: center;
+    color: var(--error-color);
+}
+
+/* === STATISTICS SUMMARY === */
+.statistics-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 30px;
+    margin: 15px 0 20px;
+    font-size: 13px;
+    color: var(--label-text-color);
+}
+
+.statistics-summary strong {
+    color: var(--main-text-color);
+    font-weight: 700;
+}
+
+.form-error-global {
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 767.98px) {
     .container {

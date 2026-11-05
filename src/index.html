@@ -98,6 +98,11 @@
 
             <!-- TEACHERS LIST (рендериться з main.js) -->
             <div class="teacher-list" id="teacher-list" aria-live="polite"></div>
+
+            <!-- Довантажує наступні 10 користувачів з API -->
+            <div class="load-more-wrapper">
+               <button type="button" class="load-more" id="load-more" hidden>Next</button>
+            </div>
          </section>
 
          <hr class="divider">
@@ -106,6 +111,8 @@
          <!-- STATISTICS -->
          <section class="statistics-section" id="statistics">
             <h1 class="section-title">Statistics</h1>
+            <!-- Зведення (кількість, середній вік...) -->
+            <div class="statistics-summary" id="statistics-summary" aria-live="polite"></div>
             <div class="statistics-table-wrapper">
                <table class="statistics-table">
 
@@ -265,6 +272,9 @@
                <label for="teacher-notes">Notes (optional)</label>
                <textarea id="teacher-notes" name="note" rows="5"></textarea>
             </div>
+
+            <!-- Загальна помилка форми (наприклад, не вдалося зберегти на сервері) -->
+            <p class="form-error form-error-global" id="form-error" role="alert" hidden></p>
 
             <button type="submit" class="popup-submit">
                Add

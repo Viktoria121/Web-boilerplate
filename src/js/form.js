@@ -31,6 +31,18 @@ function clearFieldError(container) {
 
 function clearAllErrors(form) {
   form.querySelectorAll(CONTAINER_SELECTOR).forEach(clearFieldError);
+  const formError = form.querySelector("#form-error");
+  if (formError) {
+    formError.textContent = "";
+    formError.hidden = true;
+  }
+}
+
+// Загальна помилка форми (наприклад, сервер недоступний) — на відміну від помилок окремих полів.
+function showFormError(form, message) {
+  const formError = qs("#form-error", form);
+  formError.textContent = message;
+  formError.hidden = false;
 }
 
 function showFieldError(form, errorKey, message) {
@@ -51,12 +63,17 @@ function showFieldError(form, errorKey, message) {
  * @param {object} options
  * @param {HTMLFormElement} options.form
  * @param {() => object[]} options.getTeachers  актуальний список (для перевірки дублікатів)
- * @param {(teacher: object) => void} options.onAdd  викликається, коли дані валідні
+ * @param {(teacher: object) => Promise<void>} options.onAdd  викликається, коли дані валідні.
+ *        Якщо повертає rejected-проміс (наприклад, POST не вдався), форма лишається відкритою
+ *        з повідомленням і введеними даними.
  */
 export function initAddTeacherForm({ form, getTeachers, onAdd }) {
   const countrySelect = qs("#teacher-country", form);
   const phoneInput = qs("#teacher-phone", form);
   const birthInput = qs("#teacher-birth", form);
+  const submitButton = qs(".popup-submit", form);
+  const submitLabel = submitButton.textContent;
+  let isSubmitting = false;
 
   // Дата народження не може бути в майбутньому.
   birthInput.max = new Date().toISOString().slice(0, 10);
@@ -74,8 +91,15 @@ export function initAddTeacherForm({ form, getTeachers, onAdd }) {
   form.addEventListener("input", onEdit);
   form.addEventListener("change", onEdit);
 
-  form.addEventListener("submit", (event) => {
+  const setSubmitting = (value) => {
+    isSubmitting = value;
+    submitButton.disabled = value;
+    submitButton.textContent = value ? "Saving…" : submitLabel;
+  };
+
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
     clearAllErrors(form);
 
     const input = Object.fromEntries(new FormData(form));
@@ -89,9 +113,16 @@ export function initAddTeacherForm({ form, getTeachers, onAdd }) {
       return;
     }
 
-    onAdd(teacher);
-    form.reset();
-    syncPhonePlaceholder();
+    setSubmitting(true);
+    try {
+      await onAdd(teacher);
+      form.reset();
+      syncPhonePlaceholder();
+    } catch (error) {
+      showFormError(form, `Teacher was not saved. ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   });
 
   return { reset: () => { clearAllErrors(form); form.reset(); syncPhonePlaceholder(); } };

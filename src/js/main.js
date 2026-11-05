@@ -1,19 +1,31 @@
 import {
   COURSES,
-  formatTeachers,
+  calculateStatistics,
   filterTeachers,
+  ingestUsers,
+  mergeUniqueTeachers,
   searchTeachers,
   sortTeachers,
 } from "./app.js";
+import {
+  FIRST_NEXT_PAGE,
+  fetchInitialUsers,
+  fetchNextUsers,
+  fetchSavedTeachers,
+  saveTeacher,
+} from "./api.js";
 import { debounce, qs, setSelectOptions, showToast, uniqueSorted } from "./dom.js";
 import { closePopup, initPopups, openPopup } from "./popup.js";
 import { initAddTeacherForm } from "./form.js";
 import {
   renderFavoriteButton,
   renderFavorites,
+  renderLoadError,
+  renderLoading,
   renderPagination,
   renderSortState,
   renderStatistics,
+  renderStatisticsSummary,
   renderTeacherInfo,
   renderTeacherList,
 } from "./render.js";
@@ -29,12 +41,19 @@ const state = {
   sort: { key: null, order: "asc" },
   page: 1,
   selectedId: null,
+  // Пагінація API
+  nextApiPage: FIRST_NEXT_PAGE,
+  isLoading: false,
+  isLoaded: false,
+  rejectedCount: 0,
 };
 
 const dom = {
   teacherList: qs("#teacher-list"),
+  loadMore: qs("#load-more"),
   favoritesList: qs("#favorites-list"),
   slider: qs(".slider"),
+  statsSummary: qs("#statistics-summary"),
   statsBody: qs("#statistics-body"),
   sortHeaders: [...document.querySelectorAll(".statistics-table th[data-sort]")],
   pagination: qs("#pagination"),
@@ -89,6 +108,11 @@ function renderTable() {
   renderStatistics(dom.statsBody, sorted.slice(start, start + PAGE_SIZE));
   renderPagination(dom.pagination, state.page, totalPages);
   renderSortState(dom.sortHeaders, state.sort);
+
+  renderStatisticsSummary(dom.statsSummary, {
+    ...calculateStatistics(visible, state.teachers),
+    rejected: state.rejectedCount,
+  });
 }
 
 function renderMain() {
@@ -107,6 +131,104 @@ function syncSelectOptions() {
   setSelectOptions(dom.filterCountry, uniqueSorted(countries));
   setSelectOptions(qs("#teacher-country"), uniqueSorted([...FORM_BASE_COUNTRIES, ...countries]));
   setSelectOptions(qs("#teacher-speciality"), uniqueSorted([...COURSES, ...courses]));
+}
+
+function setLoading(isLoading) {
+  state.isLoading = isLoading;
+  dom.teacherList.setAttribute("aria-busy", String(isLoading));
+  dom.loadMore.disabled = isLoading;
+  dom.loadMore.textContent = isLoading && state.isLoaded ? "Loading…" : "Next";
+}
+
+function updateLoadMoreVisibility() {
+  dom.loadMore.hidden = !state.isLoaded;
+}
+
+/* ---------- Завантаження даних ---------- */
+
+function reportRejected(rejected) {
+  state.rejectedCount += rejected.length;
+  if (rejected.length === 0) return;
+
+  console.warn(`${rejected.length} user(s) from the API failed validation and were skipped:`);
+  console.table(
+    rejected.map(({ teacher, errors }) => ({
+      name: teacher.full_name,
+      country: teacher.country,
+      problems: Object.values(errors).join("; "),
+    }))
+  );
+}
+
+/**
+ * Викладачі, збережені раніше через форму (json-server).
+ * Якщо сервер вимкнений, застосунок працює без неї.
+ */
+async function loadSavedTeachers() {
+  try {
+    const saved = await fetchSavedTeachers();
+    const { teachers, rejected } = ingestUsers([...saved].reverse());
+    reportRejected(rejected);
+    return teachers;
+  } catch (error) {
+    console.warn("json-server is not available, saved teachers were not loaded:", error.message);
+    return [];
+  }
+}
+
+async function loadInitialTeachers() {
+  setLoading(true);
+  updateLoadMoreVisibility();
+  renderLoading(dom.teacherList);
+  state.rejectedCount = 0;
+
+  try {
+    // Запити незалежні, виконуємо паралельно.
+    const [rawUsers, savedTeachers] = await Promise.all([fetchInitialUsers(), loadSavedTeachers()]);
+    const { teachers, rejected } = ingestUsers(rawUsers);
+    reportRejected(rejected);
+
+    state.teachers = mergeUniqueTeachers(savedTeachers, teachers).merged;
+    state.nextApiPage = FIRST_NEXT_PAGE;
+    state.isLoaded = true;
+  } catch (error) {
+    state.isLoaded = false;
+    state.teachers = [];
+    renderTable();
+    renderLoadError(dom.teacherList, error.message, loadInitialTeachers);
+    return;
+  } finally {
+    setLoading(false);
+    updateLoadMoreVisibility();
+  }
+
+  syncSelectOptions();
+  renderMain();
+  renderFavoritesSection();
+}
+
+async function loadNextTeachers() {
+  if (state.isLoading || !state.isLoaded) return;
+  setLoading(true);
+
+  try {
+    const rawUsers = await fetchNextUsers(state.nextApiPage);
+    state.nextApiPage += 1;
+
+    const { teachers, rejected } = ingestUsers(rawUsers);
+    reportRejected(rejected);
+
+    const { merged, added } = mergeUniqueTeachers(state.teachers, teachers);
+    state.teachers = merged;
+
+    syncSelectOptions();
+    renderMain();
+    showToast(`Loaded ${added.length} more teacher${added.length === 1 ? "" : "s"}`);
+  } catch (error) {
+    showToast(`Could not load more teachers. ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
 }
 
 /* ---------- Дії ---------- */
@@ -148,8 +270,15 @@ function applySearch(query) {
   renderMain();
 }
 
-function handleTeacherAdded(teacher) {
-  state.teachers.unshift(teacher);
+/**
+ * Викликається формою, коли дані вже пройшли валідацію.
+ * Спочатку зберігаємо на сервері (POST), і лише потім показуємо в списку:
+ * якщо POST упаде, виняток дійде до форми, і вона покаже помилку.
+ */
+async function handleTeacherAdded(teacher) {
+  const saved = await saveTeacher(teacher);
+
+  state.teachers.unshift({ ...teacher, ...saved });
   syncSelectOptions();
   state.page = 1;
   renderMain();
@@ -200,6 +329,8 @@ function bindTeacherCards() {
   dom.infoFavorite.addEventListener("click", () => {
     if (state.selectedId !== null) toggleFavorite(state.selectedId);
   });
+
+  dom.loadMore.addEventListener("click", loadNextTeachers);
 }
 
 function bindStatistics() {
@@ -237,9 +368,7 @@ function bindSlider() {
 
 /* ---------- Старт ---------- */
 
-function init() {
-  state.teachers = formatTeachers();
-
+async function init() {
   initPopups();
   syncSelectOptions();
   initAddTeacherForm({
@@ -254,8 +383,8 @@ function init() {
   bindStatistics();
   bindSlider();
 
-  renderMain();
   renderFavoritesSection();
+  await loadInitialTeachers();
 }
 
 init();
