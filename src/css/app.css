@@ -312,7 +312,6 @@ body.has-popup {
 }
 
 .teacher-card-link:focus-visible,
-.pagination-button:focus-visible,
 .teacher-info-favorite:focus-visible {
     outline: 2px solid var(--link-color);
     outline-offset: 3px;
@@ -402,121 +401,22 @@ body.has-popup {
     padding: 20px 0;
 }
 
-/* === STATISTICS TABLE === */
-.statistics-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 25px;
-    font-size: 13px;
-}
+/* === TEACHER MAP === */
+.teacher-info-map-canvas { height: 220px; margin: 0 20px 15px; isolation: isolate; }
 
-.statistics-table th {
-    padding: 12px 30px;
-    text-align: center;
-    color: var(--main-text-color);
-    border-bottom: 1px solid var(--divider-color);
-    font-size: 16px;
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+/* === STATISTICS CHART & REPORT === */
+.chart-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
+.chart-wrapper { position: relative; max-width: 460px; height: 340px; margin: 0 auto 30px; }
+.report-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+.report-tab {
+    padding: 8px 18px; background: var(--buttons-background-color);
+    border: 1px solid var(--accent-color); color: var(--accent-color);
+    font-size: 13px; transition: all 0.2s ease;
 }
-
-.statistics-table th:first-child {
-    text-align: left;
-}
-
-.statistics-table th:hover {
-    background-color: var(--statistics-table-hover-background-color);
-    border-bottom: 3px solid var(--divider-color);
-}
-
-.statistics-table th:hover::after {
-    content: " ↓";
-    position: absolute;
-    font-size: 14px;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--link-color);
-    font-weight: bold;
-}
-
-.statistics-table th:focus-visible {
-    outline: 2px solid var(--link-color);
-    outline-offset: -2px;
-}
-
-/* Стан сортування (aria-sort ставить JS) */
-.statistics-table th[aria-sort] {
-    border-bottom: 3px solid var(--divider-color);
-}
-
-.statistics-table th[aria-sort="ascending"]::after,
-.statistics-table th[aria-sort="descending"]::after {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--link-color);
-}
-
-.statistics-table th[aria-sort="ascending"]::after {
-    content: "↑";
-}
-
-.statistics-table th[aria-sort="descending"]::after {
-    content: "↓";
-}
-
-.statistics-table td {
-    padding: 10px 16px;
-    text-align: center;
-    color: var(--main-text-color);
-}
-
-.statistics-table td:first-child {
-    text-align: left;
-    color: var(--main-text-color);
-}
-
-.statistics-table tbody tr:nth-child(even) {
-    background-color: var(--second-table-row-color);
-}
-
-/* === PAGINATION === */
-.pagination {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 15px;
-    padding-left: 20px;
-}
-
-.pagination-button {
-    background: none;
-    border: none;
-    color: var(--link-color);
-    font-size: 13px;
-    cursor: pointer;
-    padding: 0;
-}
-
-.pagination-button[aria-current="page"] {
-    color: var(--main-text-color);
-    font-weight: 700;
-    text-decoration: none;
-    cursor: default;
-}
-
-.pagination-button:hover {
-    text-decoration: underline;
-}
-
-.pagination-dots {
-    color: var(--label-text-color);
-    font-size: 13px;
+.report-tab:hover,
+.report-tab[aria-pressed="true"] {
+    background: var(--accent-hover-color); border-color: var(--accent-hover-color);
+    color: var(--button-text-color-hover);
 }
 
 /* === FAVORITES CAROUSEL === */
@@ -1091,29 +991,6 @@ body.has-popup {
 
     .statistics-section {
         overflow: hidden;
-    }
-
-    .statistics-table-wrapper {
-        overflow-x: auto;
-    }
-
-    .statistics-table {
-        min-width: 600px;
-        font-size: 12px;
-    }
-
-    .statistics-table th {
-        padding: 10px 15px;
-        font-size: 14px;
-    }
-
-    .statistics-table td {
-        padding: 8px 12px;
-    }
-
-    .pagination {
-        padding-left: 0;
-        justify-content: center;
     }
 
     .slider {

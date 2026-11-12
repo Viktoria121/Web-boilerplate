@@ -33,7 +33,6 @@ async function requestJson(url, options) {
   try {
     response = await fetch(url, options);
   } catch (cause) {
-    // fetch кидає виняток лише при мережевих збоях (немає інтернету, сервер вимкнений)
     throw new ApiError("Network error: the server is unreachable", { cause });
   }
 
@@ -78,7 +77,6 @@ export async function fetchSavedTeachers() {
   return Array.isArray(data) ? data : [];
 }
 
-/** POST /teachers. json-server повертає створений запис (статус 201). */
 export function saveTeacher(teacher) {
   return requestJson(TEACHERS_ENDPOINT, {
     method: "POST",

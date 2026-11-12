@@ -11,6 +11,8 @@
    <title>Teachinder</title>
 
    <link rel="stylesheet" href="./css/app.css">
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@webdatarocks/webdatarocks@1.4/webdatarocks.css">
 
 </head>
 
@@ -111,26 +113,23 @@
          <!-- STATISTICS -->
          <section class="statistics-section" id="statistics">
             <h1 class="section-title">Statistics</h1>
-            <!-- Зведення (кількість, середній вік...) -->
             <div class="statistics-summary" id="statistics-summary" aria-live="polite"></div>
-            <div class="statistics-table-wrapper">
-               <table class="statistics-table">
-
-                  <thead>
-                     <tr>
-                        <th data-sort="full_name">Name</th>
-                        <th data-sort="course">Speciality</th>
-                        <th data-sort="age">Age</th>
-                        <th data-sort="gender">Gender</th>
-                        <th data-sort="country">Nationality</th>
-                     </tr>
-                  </thead>
-
-                  <tbody id="statistics-body"></tbody>
-               </table>
+            <div class="chart-controls">
+               <label class="filter-label" for="chart-group">Group by</label>
+               <select class="filters-select" id="chart-group">
+                  <option value="course">Speciality</option>
+                  <option value="country">Country</option>
+                  <option value="gender">Gender</option>
+               </select>
             </div>
+            <div class="chart-wrapper"><canvas id="statistics-chart" role="img" aria-label="Teachers distribution"></canvas></div>
 
-            <div class="pagination" id="pagination" hidden></div>
+            <div class="report-tabs" id="report-tabs" role="group" aria-label="Report view">
+               <button type="button" class="report-tab" data-view="country" aria-pressed="true">By country</button>
+               <button type="button" class="report-tab" data-view="flat" aria-pressed="false">All teachers</button>
+            </div>
+            <div id="report-pivot"></div>
+
          </section>
 
          <hr class="divider">
@@ -310,6 +309,7 @@
                <p class="teacher-info-subject" id="info-course"></p>
                <p id="info-location"></p>
                <p id="info-age-gender"></p>
+               <p id="info-birthday"></p>
 
                <a href="#" id="info-email"></a>
 
@@ -322,6 +322,7 @@
             <p id="info-note"></p>
          </div>
 
+         <div class="teacher-info-map-canvas" id="info-map-canvas" role="region" aria-label="Teacher location" hidden></div>
          <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" class="teacher-info-map"
             id="info-map">Google map</a>
       </div>
@@ -329,6 +330,11 @@
 
    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/dayjs.min.js"></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/@webdatarocks/webdatarocks@1.4/webdatarocks.js"></script>
    <script type="module" src="./js/main.js"></script>
 </body>
 

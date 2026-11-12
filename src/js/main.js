@@ -5,7 +5,6 @@ import {
   ingestUsers,
   mergeUniqueTeachers,
   searchTeachers,
-  sortTeachers,
 } from "./app.js";
 import {
   FIRST_NEXT_PAGE,
@@ -17,20 +16,20 @@ import {
 import { debounce, qs, setSelectOptions, showToast, uniqueSorted } from "./dom.js";
 import { closePopup, initPopups, openPopup } from "./popup.js";
 import { initAddTeacherForm } from "./form.js";
+import { renderStatisticsChart } from "./charts.js";
+import { renderReport } from "./pivot.js";
+import { showTeacherMap } from "./map.js";
 import {
   renderFavoriteButton,
   renderFavorites,
   renderLoadError,
   renderLoading,
-  renderPagination,
-  renderSortState,
-  renderStatistics,
+  renderReportTabs,
   renderStatisticsSummary,
   renderTeacherInfo,
   renderTeacherList,
 } from "./render.js";
 
-const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 250;
 const FORM_BASE_COUNTRIES = ["Ukraine", "Poland", "Germany", "United States", "Canada"];
 
@@ -38,8 +37,8 @@ const state = {
   teachers: [],
   filters: { age: "all", country: "", gender: "", favorite: false, withPhoto: false },
   query: "",
-  sort: { key: null, order: "asc" },
-  page: 1,
+  chartGroup: "course",
+  reportView: "country",
   selectedId: null,
   // Пагінація API
   nextApiPage: FIRST_NEXT_PAGE,
@@ -54,9 +53,9 @@ const dom = {
   favoritesList: qs("#favorites-list"),
   slider: qs(".slider"),
   statsSummary: qs("#statistics-summary"),
-  statsBody: qs("#statistics-body"),
-  sortHeaders: [...document.querySelectorAll(".statistics-table th[data-sort]")],
-  pagination: qs("#pagination"),
+  chartCanvas: qs("#statistics-chart"),
+  chartGroup: qs("#chart-group"),
+  reportTabs: qs("#report-tabs"),
   filters: qs(".filters"),
   filterAge: qs("#filter-age"),
   filterCountry: qs("#filter-country"),
@@ -66,6 +65,7 @@ const dom = {
   searchForm: qs("#search-form"),
   searchInput: qs("#search-input"),
   infoFavorite: qs("#info-favorite"),
+  infoMapCanvas: qs("#info-map-canvas"),
   addTeacherForm: qs("#add-teacher-form"),
   addTeacherPopup: qs("#add-teacher-popup"),
 };
@@ -93,31 +93,22 @@ function getVisibleTeachers() {
 
 /* ---------- Рендер ---------- */
 
-function renderCards() {
-  renderTeacherList(dom.teacherList, getVisibleTeachers());
-}
-
-function renderTable() {
+// Залежить від фільтрів і пошуку: картки, зведення та діаграма.
+function renderMain() {
   const visible = getVisibleTeachers();
-  const sorted = state.sort.key ? sortTeachers(visible, state.sort.key, state.sort.order) : visible;
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  state.page = Math.min(Math.max(state.page, 1), totalPages);
-
-  const start = (state.page - 1) * PAGE_SIZE;
-  renderStatistics(dom.statsBody, sorted.slice(start, start + PAGE_SIZE));
-  renderPagination(dom.pagination, state.page, totalPages);
-  renderSortState(dom.sortHeaders, state.sort);
-
+  renderTeacherList(dom.teacherList, visible);
   renderStatisticsSummary(dom.statsSummary, {
     ...calculateStatistics(visible, state.teachers),
     rejected: state.rejectedCount,
   });
+  renderStatisticsChart(dom.chartCanvas, visible, state.chartGroup);
 }
 
-function renderMain() {
-  renderCards();
-  renderTable();
+// Звіт показує всіх завантажених викладачів, тому не залежить від фільтрів:
+// перемальовуємо лише коли змінюється список або вид звіту.
+function renderReportSection() {
+  renderReportTabs(dom.reportTabs, state.reportView);
+  renderReport(state.teachers, state.reportView);
 }
 
 function renderFavoritesSection() {
@@ -194,7 +185,7 @@ async function loadInitialTeachers() {
   } catch (error) {
     state.isLoaded = false;
     state.teachers = [];
-    renderTable();
+    renderMain();
     renderLoadError(dom.teacherList, error.message, loadInitialTeachers);
     return;
   } finally {
@@ -204,6 +195,7 @@ async function loadInitialTeachers() {
 
   syncSelectOptions();
   renderMain();
+  renderReportSection();
   renderFavoritesSection();
 }
 
@@ -223,6 +215,7 @@ async function loadNextTeachers() {
 
     syncSelectOptions();
     renderMain();
+    renderReportSection();
     showToast(`Loaded ${added.length} more teacher${added.length === 1 ? "" : "s"}`);
   } catch (error) {
     showToast(`Could not load more teachers. ${error.message}`);
@@ -244,6 +237,7 @@ function showTeacherInfo(id) {
   state.selectedId = teacher.id;
   renderTeacherInfo(teacher);
   openPopup("teacher-info-popup");
+  showTeacherMap(dom.infoMapCanvas, teacher.coordinates); // після openPopup: карті потрібен видимий контейнер
 }
 
 function toggleFavorite(id) {
@@ -253,20 +247,11 @@ function toggleFavorite(id) {
   teacher.favorite = !teacher.favorite;
   renderFavoriteButton(teacher);
   renderFavoritesSection();
-  renderMain(); // "Only favorites" може змінити склад списку
-}
-
-function toggleSort(key) {
-  state.sort = state.sort.key === key
-    ? { key, order: state.sort.order === "asc" ? "desc" : "asc" }
-    : { key, order: "asc" };
-  state.page = 1;
-  renderTable();
+  renderMain(); // "Only favorites" та відсоток вибраних залежать від цього прапорця
 }
 
 function applySearch(query) {
   state.query = query.trim();
-  state.page = 1;
   renderMain();
 }
 
@@ -280,8 +265,8 @@ async function handleTeacherAdded(teacher) {
 
   state.teachers.unshift({ ...teacher, ...saved });
   syncSelectOptions();
-  state.page = 1;
   renderMain();
+  renderReportSection();
   closePopup(dom.addTeacherPopup);
   showToast(`${teacher.full_name} was added`);
 }
@@ -302,7 +287,6 @@ function bindFilters() {
       favorite: dom.filterFavorites.checked,
       withPhoto: dom.filterPhoto.checked,
     };
-    state.page = 1;
     renderMain();
   });
 }
@@ -334,22 +318,16 @@ function bindTeacherCards() {
 }
 
 function bindStatistics() {
-  for (const th of dom.sortHeaders) {
-    th.tabIndex = 0;
-    th.addEventListener("click", () => toggleSort(th.dataset.sort));
-    th.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        toggleSort(th.dataset.sort);
-      }
-    });
-  }
+  dom.chartGroup.addEventListener("change", () => {
+    state.chartGroup = dom.chartGroup.value;
+    renderMain();
+  });
 
-  dom.pagination.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-page]");
-    if (!button) return;
-    state.page = Number(button.dataset.page);
-    renderTable();
+  dom.reportTabs.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-view]");
+    if (!tab) return;
+    state.reportView = tab.dataset.view;
+    renderReportSection();
   });
 }
 

@@ -1,4 +1,5 @@
 import { el, qs, splitName, getInitials, getContrastColor } from "./dom.js";
+import { daysToBirthday } from "./app.js";
 
 const INFO_POPUP_ID = "teacher-info-popup";
 
@@ -86,27 +87,8 @@ export function renderLoadError(container, message, onRetry) {
 
 /* ---------- Статистика ---------- */
 
-export function renderStatistics(tbody, teachers) {
-  if (teachers.length === 0) {
-    const cell = el("td", { text: "Nothing to show", attrs: { colspan: 5 } });
-    tbody.replaceChildren(el("tr", {}, [cell]));
-    return;
-  }
-
-  const rows = teachers.map((teacher) =>
-    el("tr", {}, [
-      el("td", { text: teacher.full_name ?? "—" }),
-      el("td", { text: teacher.course ?? "—" }),
-      el("td", { text: teacher.age ?? "—" }),
-      el("td", { text: teacher.gender ?? "—" }),
-      el("td", { text: teacher.country ?? "—" }),
-    ])
-  );
-  tbody.replaceChildren(...rows);
-}
-
 /**
- * Зведення над таблицею. Оновлюється при кожній зміні даних:
+ * Зведення над діаграмою. Оновлюється при кожній зміні даних:
  * фільтри, пошук, догрузка з API, додавання викладача, зміна вибраних.
  */
 export function renderStatisticsSummary(container, stats) {
@@ -126,60 +108,19 @@ export function renderStatisticsSummary(container, stats) {
   container.replaceChildren(...items);
 }
 
-export function renderSortState(headers, sort) {
-  headers.forEach((th) => {
-    const isActive = th.dataset.sort === sort.key;
-    if (isActive) {
-      th.setAttribute("aria-sort", sort.order === "desc" ? "descending" : "ascending");
-    } else {
-      th.removeAttribute("aria-sort");
-    }
+/** Перемикач виду звіту (по країнах / усі викладачі). */
+export function renderReportTabs(container, view) {
+  container.querySelectorAll("[data-view]").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.dataset.view === view));
   });
-}
-
-/* ---------- Пагінація ---------- */
-
-function getPageItems(current, total) {
-  const pages = [1, total, current - 1, current, current + 1]
-    .filter((page) => page >= 1 && page <= total);
-  const unique = [...new Set(pages)].sort((a, b) => a - b);
-
-  const items = [];
-  let previous = 0;
-  for (const page of unique) {
-    if (page - previous > 1) items.push("…");
-    items.push(page);
-    previous = page;
-  }
-  return items;
-}
-
-export function renderPagination(container, currentPage, totalPages) {
-  if (totalPages <= 1) {
-    container.replaceChildren();
-    container.hidden = true;
-    return;
-  }
-
-  container.hidden = false;
-  const items = getPageItems(currentPage, totalPages).map((item) => {
-    if (item === "…") return el("span", { className: "pagination-dots", text: "…" });
-
-    return el("button", {
-      className: "pagination-button",
-      text: String(item),
-      attrs: {
-        type: "button",
-        "aria-label": `Page ${item}`,
-        "aria-current": item === currentPage ? "page" : false,
-      },
-      dataset: { page: String(item) },
-    });
-  });
-  container.replaceChildren(...items);
 }
 
 /* ---------- Попап з інформацією ---------- */
+
+function formatBirthday(days) {
+  if (days === 0) return "Birthday is today";
+  return `Next birthday in ${days} ${days === 1 ? "day" : "days"}`;
+}
 
 export function renderTeacherInfo(teacher) {
   const popup = qs(".popup-teacher-info");
@@ -197,6 +138,11 @@ export function renderTeacherInfo(teacher) {
   qs("#info-age-gender").textContent = [teacher.age, teacher.gender].filter((v) => v !== null && v !== undefined).join(", ");
   qs("#info-phone").textContent = teacher.phone ?? "";
   qs("#info-note").textContent = teacher.note ?? "No notes yet.";
+
+  const daysLeft = daysToBirthday(teacher.b_date);
+  const birthday = qs("#info-birthday");
+  birthday.hidden = daysLeft === null;
+  birthday.textContent = daysLeft === null ? "" : formatBirthday(daysLeft);
 
   const email = qs("#info-email");
   email.textContent = teacher.email ?? "";

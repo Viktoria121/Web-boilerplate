@@ -1,7 +1,3 @@
-/**
- * Дрібні DOM-утиліти. Весь користувацький текст вставляється через textContent,
- * тому дані з форми не можуть потрапити в розмітку як HTML.
- */
 
 export function el(tag, { className, text, attrs = {}, dataset = {} } = {}, children = []) {
   const node = document.createElement(tag);
@@ -31,13 +27,11 @@ export function debounce(fn, delay = 250) {
   };
 }
 
-/** "Ihor Tkachuk" -> { firstName: "Ihor", lastName: "Tkachuk" } */
 export function splitName(fullName = "") {
   const [firstName = "", ...rest] = fullName.trim().split(/\s+/);
   return { firstName, lastName: rest.join(" ") };
 }
 
-/** "Ihor Tkachuk" -> "I.T" (формат, який уже використовує макет) */
 export function getInitials(fullName = "") {
   const { firstName, lastName } = splitName(fullName);
   return [firstName, lastName]
@@ -46,7 +40,6 @@ export function getInitials(fullName = "") {
     .join(".");
 }
 
-/** Чорний або білий — залежно від яскравості фону, щоб текст завжди читався. */
 export function getContrastColor(hex) {
   const match = /^#?([0-9a-f]{6})$/i.exec(hex ?? "");
   if (!match) return "";
@@ -58,10 +51,7 @@ export function getContrastColor(hex) {
   return luminance > 0.55 ? "#211f20" : "#ffffff";
 }
 
-/**
- * Перезаповнює <select>, залишаючи перший <option> (плейсхолдер: "All" / "Select…").
- * Поточний вибір зберігається, якщо значення ще існує.
- */
+
 export function setSelectOptions(select, values) {
   const previous = select.value;
   while (select.options.length > 1) select.remove(1);
