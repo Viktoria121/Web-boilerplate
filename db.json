@@ -1,0 +1,26 @@
+{
+  "teachers": [
+    {
+      "id": "df97b882-25b2-4786-8843-505c27dcc6c9",
+      "gender": "Male",
+      "title": null,
+      "full_name": "Василій",
+      "city": "Берлін",
+      "state": "Берлін",
+      "country": "Germany",
+      "postcode": null,
+      "coordinates": null,
+      "timezone": null,
+      "email": "kjfkgejkd@gmail.com",
+      "b_date": "2016-01-05",
+      "age": 10,
+      "phone": "0000-1111111",
+      "picture_large": null,
+      "picture_thumbnail": null,
+      "favorite": false,
+      "course": "Art",
+      "bg_color": "#ffffff",
+      "note": "Something"
+    }
+  ]
+}

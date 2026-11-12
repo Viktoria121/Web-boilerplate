@@ -11,11 +11,12 @@
    <title>Teachinder</title>
 
    <link rel="stylesheet" href="./css/app.css">
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@webdatarocks/webdatarocks@1.4/webdatarocks.css">
 
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage">
-   <script type="module" src="./js/app.js"></script>
 
    <div class="container">
 
@@ -23,10 +24,11 @@
          <div class="header-top">
             <a href="/" class="teacher-logo">Teachinder</a>
 
-            <div class="search-group">
-               <input type="search" class="search-input-for-a-teacher" placeholder="Name, note or age to search">
+            <form class="search-group" id="search-form" role="search">
+               <input type="search" id="search-input" class="search-input-for-a-teacher"
+                  placeholder="Name, note or age to search" aria-label="Search teachers by name, note or age">
                <button type="submit" class="search-button">Search</button>
-            </div>
+            </form>
          </div>
 
 
@@ -50,7 +52,7 @@
       <main class="main">
 
          <!-- TOP TEACHERS -->
-         <section class="top-teachers-section">
+         <section class="top-teachers-section" id="teachers">
 
             <div class="section-header">
                <h1 class="section-title">Top Teachers</h1>
@@ -58,31 +60,29 @@
 
             <div class="filters">
                <div class="filter-group">
-                  <span class="filter-label">Age</span>
+                  <label class="filter-label" for="filter-age">Age</label>
                   <select class="filters-select" id="filter-age">
-                     <option>All</option>
-                     <option>18-31</option>
-                     <option>32-45</option>
-                     <option>46-59</option>
-                     <option>60+</option>
+                     <option value="all">All</option>
+                     <option value="18-31">18-31</option>
+                     <option value="32-45">32-45</option>
+                     <option value="46-59">46-59</option>
+                     <option value="60+">60+</option>
                   </select>
                </div>
 
                <div class="filter-group">
-                  <span class="filter-label">Region</span>
-                  <select class="filters-select" id="filter-region">
-                     <option>All</option>
-                     <option>Europe</option>
-                     <option>Asia</option>
+                  <label class="filter-label" for="filter-country">Country</label>
+                  <select class="filters-select" id="filter-country">
+                     <option value="">All</option>
                   </select>
                </div>
 
                <div class="filter-group">
-                  <span class="filter-label">Sex</span>
+                  <label class="filter-label" for="filter-sex">Sex</label>
                   <select class="filters-select" id="filter-sex">
-                     <option>All</option>
-                     <option>Male</option>
-                     <option>Female</option>
+                     <option value="">All</option>
+                     <option value="Male">Male</option>
+                     <option value="Female">Female</option>
                   </select>
                </div>
 
@@ -98,74 +98,12 @@
             </div>
 
 
-            <!-- TEACHERS LIST -->
-            <div class="teacher-list">
-               <a href="#teacher-info-popup" class="teacher-card teacher-card-link">
+            <!-- TEACHERS LIST (рендериться з main.js) -->
+            <div class="teacher-list" id="teacher-list" aria-live="polite"></div>
 
-                  <img src="images/teacher.jpg" alt="Ihor Tkachuk" class="teacher-card-avatar">
-
-                  <h2 class="teacher-card-name">Ihor</h2>
-                  <h2 class="teacher-card-surname">Tkachuk</h2>
-                  <p class="teacher-card-subject">Chemistry</p>
-                  <p class="teacher-card-country">Ukraine</p>
-
-               </a>
-
-               <article class="teacher-card">
-                  <img src="images/teacher.jpg" alt="Pragg Rameshbabu" class="teacher-card-avatar">
-                  <h2 class="teacher-card-name">Pragg</h2>
-                  <h2 class="teacher-card-surname">Rameshbabu</h2>
-                  <p class="teacher-card-subject">Chess</p>
-                  <p class="teacher-card-country">India</p>
-               </article>
-
-               <article class="teacher-card">
-                  <img src="images/teacher.jpg" alt="Floor Jansen" class="teacher-card-avatar">
-                  <h2 class="teacher-card-name">Floor</h2>
-                  <h2 class="teacher-card-surname">Jansen</h2>
-                  <p class="teacher-card-subject">Vocal</p>
-                  <p class="teacher-card-country">Denmark</p>
-               </article>
-
-               <article class="teacher-card">
-                  <img src="images/teacher.jpg" alt="John Burke" class="teacher-card-avatar">
-                  <h2 class="teacher-card-name">John</h2>
-                  <h2 class="teacher-card-surname">Burke</h2>
-                  <p class="teacher-card-subject">Computer Science</p>
-                  <p class="teacher-card-country">Belgium</p>
-               </article>
-
-               <article class="teacher-card">
-                  <img src="images/teacher.jpg" alt="Ari Tang" class="teacher-card-avatar">
-                  <h2 class="teacher-card-name">Ari</h2>
-                  <h2 class="teacher-card-surname">Tang</h2>
-                  <p class="teacher-card-subject">Biology</p>
-                  <p class="teacher-card-country">China</p>
-               </article>
-
-               <article class="teacher-card">
-                  <img src="images/teacher.jpg" alt="Rachel Andrew" class="teacher-card-avatar">
-                  <h2 class="teacher-card-name">Rachel</h2>
-                  <h2 class="teacher-card-surname">Andrew</h2>
-                  <p class="teacher-card-subject">Medicine</p>
-                  <p class="teacher-card-country">UK</p>
-               </article>
-
-               <article class="teacher-card">
-                  <div class="teacher-card-avatar-placeholder">A.M</div>
-                  <h2 class="teacher-card-name">Anna</h2>
-                  <h2 class="teacher-card-surname">Muzychuk</h2>
-                  <p class="teacher-card-subject">Chess</p>
-                  <p class="teacher-card-country">Ukraine</p>
-               </article>
-
-               <article class="teacher-card">
-                  <div class="teacher-card-avatar-placeholder">R.L</div>
-                  <h2 class="teacher-card-name">Radoslaw</h2>
-                  <h2 class="teacher-card-surname">Ljuboevic</h2>
-                  <p class="teacher-card-subject">Physics</p>
-                  <p class="teacher-card-country">Poland</p>
-               </article>
+            <!-- Довантажує наступні 10 користувачів з API -->
+            <div class="load-more-wrapper">
+               <button type="button" class="load-more" id="load-more" hidden>Next</button>
             </div>
          </section>
 
@@ -173,279 +111,149 @@
 
 
          <!-- STATISTICS -->
-         <section class="statistics-section">
+         <section class="statistics-section" id="statistics">
             <h1 class="section-title">Statistics</h1>
-            <div class="statistics-table-wrapper">
-               <table class="statistics-table">
-
-                  <thead>
-                     <tr>
-                        <th>Name</th>
-                        <th>Speciality</th>
-                        <th>Age</th>
-                        <th>Gender</th>
-                        <th>Nationality</th>
-                     </tr>
-                  </thead>
-
-                  <tbody>
-                     <tr>
-                        <td>Daisy Alexander</td>
-                        <td>Chemistry</td>
-                        <td>28</td>
-                        <td>Female</td>
-                        <td>Vietnam</td>
-                     </tr>
-
-                     <tr>
-                        <td>Julia Bradley</td>
-                        <td>Math</td>
-                        <td>26</td>
-                        <td>Female</td>
-                        <td>USA</td>
-                     </tr>
-
-                     <tr>
-                        <td>Rita Hart</td>
-                        <td>Art</td>
-                        <td>41</td>
-                        <td>Female</td>
-                        <td>Ireland</td>
-                     </tr>
-
-                     <tr>
-                        <td>Jonathan Jacobs</td>
-                        <td>Math</td>
-                        <td>32</td>
-                        <td>Male</td>
-                        <td>England</td>
-                     </tr>
-
-                     <tr>
-                        <td>Nathaniel White</td>
-                        <td>Computer Science</td>
-                        <td>37</td>
-                        <td>Male</td>
-                        <td>Austria</td>
-                     </tr>
-
-                     <tr>
-                        <td>Frank Medina</td>
-                        <td>English</td>
-                        <td>43</td>
-                        <td>Male</td>
-                        <td>Italy</td>
-                     </tr>
-
-                     <tr>
-                        <td>Ella Curtis</td>
-                        <td>Chess</td>
-                        <td>34</td>
-                        <td>Female</td>
-                        <td>USA</td>
-                     </tr>
-
-                     <tr>
-                        <td>Chaire Simmmons</td>
-                        <td>Art</td>
-                        <td>38</td>
-                        <td>Female</td>
-                        <td>Netherlands</td>
-                     </tr>
-
-                     <tr>
-                        <td>Benjamin Knight</td>
-                        <td>Biology</td>
-                        <td>44</td>
-                        <td>Male</td>
-                        <td>Scotland</td>
-                     </tr>
-
-                     <tr>
-                        <td>Norma Rose</td>
-                        <td>Statistics</td>
-                        <td>36</td>
-                        <td>Female</td>
-                        <td>France</td>
-                     </tr>
-                  </tbody>
+            <div class="statistics-summary" id="statistics-summary" aria-live="polite"></div>
+            <div class="chart-controls">
+               <label class="filter-label" for="chart-group">Group by</label>
+               <select class="filters-select" id="chart-group">
+                  <option value="course">Speciality</option>
+                  <option value="country">Country</option>
+                  <option value="gender">Gender</option>
+               </select>
             </div>
-            </table>
-   </div>
+            <div class="chart-wrapper"><canvas id="statistics-chart" role="img" aria-label="Teachers distribution"></canvas></div>
 
-   <div class="pagination">
-      <button type="button" class="pagination-button">1</button>
-      <button type="button" class="pagination-button">2</button>
-      <button type="button" class="pagination-button">3</button>
-      <span class="pagination-dots">...</span>
-      <button type="button" class="pagination-button">Last</button>
-   </div>
-   </section>
+            <div class="report-tabs" id="report-tabs" role="group" aria-label="Report view">
+               <button type="button" class="report-tab" data-view="country" aria-pressed="true">By country</button>
+               <button type="button" class="report-tab" data-view="flat" aria-pressed="false">All teachers</button>
+            </div>
+            <div id="report-pivot"></div>
 
-   <hr class="divider">
+         </section>
+
+         <hr class="divider">
 
 
-   <!-- FAVOURITE -->
-   <section class="favorites-section">
-      <h1 class="section-title">Favorites</h1>
+         <!-- FAVOURITE -->
+         <section class="favorites-section" id="favorites">
+            <h1 class="section-title">Favorites</h1>
 
-      <div class="slider">
+            <div class="slider">
+               <div class="slider-content" id="favorites-list"></div>
+            </div>
+         </section>
 
-         <div class="slider-content">
+         <hr class="divider">
+      </main>
 
-            <a href="#teacher-info-popup" class="teacher-card teacher-card-link">
-               <img src="images/teacher.jpg" alt="Ihor Tkachuk" class="teacher-card-avatar">
 
-               <h2 class="teacher-card-name">Ihor</h2>
-               <h2 class="teacher-card-surname">Tkachuk</h2>
-               <p class="teacher-card-country">Ukraine</p>
-
-            </a>
-
-            <article class="teacher-card">
-               <div class="teacher-card-avatar-placeholder">A.M</div>
-               <h2 class="teacher-card-name">Anna</h2>
-               <h2 class="teacher-card-surname">Muzychuk</h2>
-               <p class="teacher-card-country">Ukraine</p>
-            </article>
-
-            <article class="teacher-card">
-               <img src="images/teacher.jpg" alt="John Burke" class="teacher-card-avatar">
-               <h2 class="teacher-card-name">John</h2>
-               <h2 class="teacher-card-surname">Burke</h2>
-               <p class="teacher-card-country">Belgium</p>
-            </article>
-
-            <article class="teacher-card">
-               <img src="images/teacher.jpg"alt="Ari Tang" class="teacher-card-avatar">
-               <h2 class="teacher-card-name">Ari</h2>
-               <h2 class="teacher-card-surname">Tang</h2>
-               <p class="teacher-card-country">China</p>
-            </article>
-
-            <article class="teacher-card">
-               <img src="images/teacher.jpg" alt="Floor Jansen" class="teacher-card-avatar">
-               <h2 class="teacher-card-name">Floor</h2>
-               <h2 class="teacher-card-surname">Jansen</h2>
-               <p class="teacher-card-country">Denmark</p>
-            </article>
-
+      <footer class="footer">
+         <div class="footer-about" id="about">
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. A atque facere, hic impedit itaque molestiae sit
+               tempore? Ea in mollitia natus rerum voluptates. Ea ex mecepturi facere tempora. Aliquid asperiores hic
+               impedit iusto natus quaerat ratione sit? Culpa iusto optio voluptas voluptate. Enim eveniet fugit iure
+               maiores molestiae, praesentium quia.</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam eligendi illum in inventore ipsum odio
+               officiis omnis quisquam sed tempora?</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. A atque esse expedita id iusto mollitia, odit sint
+               ullam veritatis vero?</p>
          </div>
 
-      </div>
-   </section>
+         <div class="footer-bottom">
 
-   <hr class="divider">
-   </main>
+            <nav class="navigation">
+               <ul class="navigation-list">
+                  <li class="navigation-item"><a href="#teachers" class="navigation-link">Teachers</a></li>
+                  <li class="navigation-item"><a href="#statistics" class="navigation-link">Statistics</a></li>
+                  <li class="navigation-item"><a href="#favorites" class="navigation-link">Favorites</a></li>
+                  <li class="navigation-item"><a href="#about" class="navigation-link">About</a></li>
+               </ul>
+            </nav>
 
-
-   <footer class="footer">
-      <div class="footer-about">
-         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. A atque facere, hic impedit itaque molestiae sit
-            tempore? Ea in mollitia natus rerum voluptates. Ea ex mecepturi facere tempora. Aliquid asperiores hic
-            impedit iusto natus quaerat ratione sit? Culpa iusto optio voluptas voluptate. Enim eveniet fugit iure
-            maiores molestiae, praesentium quia.</p>
-         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam eligendi illum in inventore ipsum odio
-            officiis omnis quisquam sed tempora?</p>
-         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. A atque esse expedita id iusto mollitia, odit sint
-            ullam veritatis vero?</p>
-      </div>
-
-      <div class="footer-bottom">
-
-         <nav class="navigation">
-            <ul class="navigation-list">
-               <li class="navigation-item"><a href="#teachers" class="navigation-link">Teachers</a></li>
-               <li class="navigation-item"><a href="#statistics" class="navigation-link">Statistics</a></li>
-               <li class="navigation-item"><a href="#favorites" class="navigation-link">Favorites</a></li>
-               <li class="navigation-item"><a href="#about" class="navigation-link">About</a></li>
-            </ul>
-         </nav>
-
-         <button type="button" class="add-teacher">Add teacher</button>
-      </div>
-   </footer>
+            <a href="#add-teacher-popup" class="add-teacher">Add teacher</a>
+         </div>
+      </footer>
 
    </div>
 
 
 
    <!-- ADD TEACHER POPUP -->
-   <div class="popup-overlay" id="add-teacher-popup">
+   <div class="popup-overlay" id="add-teacher-popup" role="dialog" aria-modal="true"
+      aria-labelledby="add-teacher-title">
 
       <div class="popup popup-add-teacher">
          <div class="popup-header">
-            <h2 class="popup-title">Add Teacher</h2>
-            <a href="#" class="popup-close">&times</a>
+            <h2 class="popup-title" id="add-teacher-title">Add Teacher</h2>
+            <a href="#" class="popup-close" aria-label="Close">&times;</a>
          </div>
 
-         <form class="add-teacher-form">
+         <form class="add-teacher-form" id="add-teacher-form" novalidate>
             <div class="form-field">
                <label for="teacher-name">Name</label>
-               <input type="text" id="teacher-name" placeholder="Enter name">
+               <input type="text" id="teacher-name" name="full_name" placeholder="Enter full name" required
+                  autocomplete="off">
             </div>
 
             <div class="form-field">
                <label for="teacher-speciality">Speciality</label>
-               <select id="teacher-speciality">
-                  <option>Mathematics</option>
-                  <option>Physics</option>
-                  <option>Chemistry</option>
-                  <option>Biology</option>
-                  <option>Computer Science</option>
-                  <option>English</option>
-                  <option>Chess</option>
-                  <option>Vocal</option>
+               <!-- Варіанти додаються з JS (COURSES) -->
+               <select id="teacher-speciality" name="course" required>
+                  <option value="" disabled selected>Select speciality</option>
                </select>
             </div>
 
             <div class="form-row">
                <div class="form-field">
                   <label for="teacher-country">Country</label>
-                  <select id="teacher-country">
-                     <option>Ukraine</option>
-                     <option>Poland</option>
-                     <option>Germany</option>
-                     <option>USA</option>
-                     <option>Canada</option>
+                  <select id="teacher-country" name="country" required>
+                     <option value="" disabled selected>Select country</option>
                   </select>
                </div>
 
                <div class="form-field">
+                  <label for="teacher-state">State</label>
+                  <input type="text" id="teacher-state" name="state" placeholder="Enter state or region" required>
+               </div>
+            </div>
+
+            <div class="form-row">
+               <div class="form-field">
                   <label for="teacher-city">City</label>
-                  <input type="text" id="teacher-city" placeholder="Enter city">
+                  <input type="text" id="teacher-city" name="city" placeholder="Enter city" required>
+               </div>
+
+               <div class="form-field">
+                  <label for="teacher-birth">Date of birth</label>
+                  <input type="date" id="teacher-birth" name="b_date" required>
                </div>
             </div>
 
             <div class="form-row">
                <div class="form-field">
                   <label for="teacher-email">Email</label>
-                  <input type="email" id="teacher-email" placeholder="Enter email">
+                  <input type="email" id="teacher-email" name="email" placeholder="Enter email" required>
                </div>
 
                <div class="form-field">
                   <label for="teacher-phone">Phone</label>
-                  <input type="tel" id="teacher-phone" placeholder="Enter phone">
+                  <input type="tel" id="teacher-phone" name="phone" placeholder="Enter phone" required>
                </div>
             </div>
 
-            <div class="form-field">
-               <label for="teacher-birth">Date of birth</label>
-               <input type="date" id="teacher-birth">
-            </div>
 
-
-            <div class="form-field-radio">
+            <div class="form-field-radio" role="radiogroup" aria-labelledby="sex-label">
                <span class="form-label" id="sex-label">Sex</span>
 
                <div class="radio-options">
                   <label class="radio-label">
-                     <input type="radio" name="sex" value="male">
+                     <input type="radio" name="gender" value="male">
                      Male
                   </label>
 
                   <label class="radio-label">
-                     <input type="radio" name="sex" value="female">
+                     <input type="radio" name="gender" value="female">
                      Female
                   </label>
                </div>
@@ -456,13 +264,16 @@
                   Background color
                </label>
 
-               <input type="color" id="background-color" value="#ffffff">
+               <input type="color" id="background-color" name="bg_color" value="#ffffff">
             </div>
 
             <div class="form-field">
                <label for="teacher-notes">Notes (optional)</label>
-               <textarea id="teacher-notes" rows="5"></textarea>
+               <textarea id="teacher-notes" name="note" rows="5"></textarea>
             </div>
+
+            <!-- Загальна помилка форми (наприклад, не вдалося зберегти на сервері) -->
+            <p class="form-error form-error-global" id="form-error" role="alert" hidden></p>
 
             <button type="submit" class="popup-submit">
                Add
@@ -473,48 +284,58 @@
 
 
 
-   <!-- TEACHER INFO POPUP -->
-   <div class="popup-overlay" id="teacher-info-popup">
+   <!-- TEACHER INFO POPUP ( з render.js) -->
+   <div class="popup-overlay" id="teacher-info-popup" role="dialog" aria-modal="true"
+      aria-labelledby="teacher-info-title">
 
       <div class="popup popup-teacher-info">
 
          <div class="popup-header">
-            <h2 class="popup-title">Teacher Info</h2>
-            <a href="#" class="popup-close">&times</a>
+            <h2 class="popup-title" id="teacher-info-title">Teacher Info</h2>
+            <a href="#" class="popup-close" aria-label="Close">&times;</a>
          </div>
 
 
          <div class="teacher-info">
-            <img src="images/teacher.jpg" alt="Ihor Tkachuk" class="teacher-info-avatar">
+            <div class="teacher-info-avatar-slot" id="info-avatar-slot"></div>
 
             <div class="teacher-info-details">
                <div class="teacher-info-name-row">
-                  <h2>Ihor Tkachuk</h2>
-                  <span class="teacher-info-favorite">☆</span>
+                  <h2 id="info-name"></h2>
+                  <button type="button" class="teacher-info-favorite" id="info-favorite" aria-pressed="false"
+                     aria-label="Add to favorites">☆</button>
                </div>
 
-               <p class="teacher-info-subject">Chemistry</p>
-               <p>Kyiv, Ukraine</p>
-               <p>35, Male</p>
+               <p class="teacher-info-subject" id="info-course"></p>
+               <p id="info-location"></p>
+               <p id="info-age-gender"></p>
+               <p id="info-birthday"></p>
 
-               <a href="mailto:ihor_tkachuk@domain.com">ihor_tkachuk@domain.com</a>
+               <a href="#" id="info-email"></a>
 
-               <p>+38064993252</p>
+               <p id="info-phone"></p>
             </div>
          </div>
 
 
          <div class="teacher-info-description">
-            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. A atque facere, hic impedit itaque molestiae
-               sit tempore? Ea in mollitia natus rerum voluptates. Ea ex mecepturi facere tempora. Aliquid asperiores
-               hic impedit iusto natus quaerat ratione sit? Culpa iusto optio voluptas voluptate. Enim eveniet fugit
-               iure maiores molestiae, praesentium quia.</p>
+            <p id="info-note"></p>
          </div>
 
-         <a href="https://maps.google.com" target="_blank" class="teacher-info-map">Google map</a>
+         <div class="teacher-info-map-canvas" id="info-map-canvas" role="region" aria-label="Teacher location" hidden></div>
+         <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" class="teacher-info-map"
+            id="info-map">Google map</a>
       </div>
    </div>
 
+   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/dayjs.min.js"></script>
+   <script defer src="https://cdn.jsdelivr.net/npm/@webdatarocks/webdatarocks@1.4/webdatarocks.js"></script>
+   <script type="module" src="./js/main.js"></script>
 </body>
 
 </html>
