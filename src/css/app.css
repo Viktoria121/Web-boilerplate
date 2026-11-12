@@ -11,6 +11,7 @@
     --accent-hover-color: #d43f2a;
     --divider-color: #000000;
     --favorite-icon-color: #eceb07;
+    --error-color: #d32f2f;
 
     --page-background-color: #fcfcfc;
     --container-background-color: #ffffff;
@@ -40,12 +41,20 @@
     padding: 0;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 body {
     color: var(--main-text-color);
     background-color: var(--page-background-color);
     font-family: var(--main-font);
     line-height: 1.4;
     font-size: 14px;
+}
+
+body.has-popup {
+    overflow: hidden;
 }
 
 .container {
@@ -302,6 +311,13 @@ body {
     color: inherit;
 }
 
+.teacher-card-link:focus-visible,
+.pagination-button:focus-visible,
+.teacher-info-favorite:focus-visible {
+    outline: 2px solid var(--link-color);
+    outline-offset: 3px;
+}
+
 .teacher-card-avatar {
     width: 110px;
     height: 110px;
@@ -365,13 +381,25 @@ body {
     line-height: 1;
 }
 
-.teacher-list .teacher-card:nth-child(3)::after,
-.teacher-list .teacher-card:nth-child(5)::after {
+/* Зірка — лише для вибраних викладачів (клас ставить JS) */
+.teacher-list .teacher-card.is-favorite::after {
     content: "★";
     font-size: 35px;
     color: var(--favorite-icon-color);
     top: -2px;
     right: 2px;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    padding: 30px 10px;
+    text-align: center;
+    color: var(--label-text-color);
+}
+
+.slider-content .empty-state {
+    flex: 1;
+    padding: 20px 0;
 }
 
 /* === STATISTICS TABLE === */
@@ -413,6 +441,35 @@ body {
     font-weight: bold;
 }
 
+.statistics-table th:focus-visible {
+    outline: 2px solid var(--link-color);
+    outline-offset: -2px;
+}
+
+/* Стан сортування (aria-sort ставить JS) */
+.statistics-table th[aria-sort] {
+    border-bottom: 3px solid var(--divider-color);
+}
+
+.statistics-table th[aria-sort="ascending"]::after,
+.statistics-table th[aria-sort="descending"]::after {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--link-color);
+}
+
+.statistics-table th[aria-sort="ascending"]::after {
+    content: "↑";
+}
+
+.statistics-table th[aria-sort="descending"]::after {
+    content: "↓";
+}
+
 .statistics-table td {
     padding: 10px 16px;
     text-align: center;
@@ -446,9 +503,11 @@ body {
     padding: 0;
 }
 
-.pagination-button:first-child,
-.pagination span {
+.pagination-button[aria-current="page"] {
     color: var(--main-text-color);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: default;
 }
 
 .pagination-button:hover {
@@ -558,7 +617,9 @@ body {
     z-index: 5;
 }
 
-.popup-overlay:target {
+/* :target лишається як запасний варіант без JS; з JS попапи відкриває клас .is-open */
+.popup-overlay:target,
+.popup-overlay.is-open {
     display: flex;
 }
 
@@ -651,6 +712,10 @@ body {
     gap: 30px;
 }
 
+.form-field-radio {
+    flex-wrap: wrap;
+}
+
 .form-field-radio #sex-label {
     margin-bottom: 0;
     margin-right: 25px;
@@ -666,6 +731,23 @@ body {
 
 .radio-label input {
     width: auto;
+}
+
+/* Помилки валідації (елементи створює form.js) */
+.form-error {
+    flex-basis: 100%;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--error-color);
+}
+
+.form-field-radio .form-error,
+.form-field-background-color .form-error {
+    margin-top: 0;
+}
+
+.add-teacher-form [aria-invalid="true"] {
+    border-color: var(--error-color);
 }
 
 .popup-submit {
@@ -696,10 +778,26 @@ body {
     padding: 20px;
 }
 
+.teacher-info-avatar-slot {
+    display: contents;
+}
+
 .teacher-info-avatar {
     width: 220px;
     height: 220px;
     object-fit: cover;
+    flex-shrink: 0;
+}
+
+.teacher-info-avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent-color);
+    background-color: var(--second-table-row-color);
+    border: 3px solid var(--accent-color);
 }
 
 .teacher-info-details {
@@ -722,6 +820,14 @@ body {
 .teacher-info-favorite {
     color: var(--favorite-icon-color);
     font-size: 35px;
+    border: none;
+    background: none;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.teacher-info-favorite:hover {
+    transform: scale(1.1);
 }
 
 .teacher-info-details p {
@@ -757,6 +863,100 @@ body {
     margin: 0 20px 20px;
     color: var(--link-color);
     text-decoration: underline;
+    font-size: 13px;
+}
+
+/* === TOAST === */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 10;
+    max-width: 90vw;
+    padding: 10px 18px;
+    background-color: var(--popup-header-background-color);
+    color: var(--popup-header-text-color);
+    font-size: 13px;
+    box-shadow: 0 4px 12px var(--soft-shadow2);
+    opacity: 0;
+    transform: translate(-50%, 10px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.is-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        transition: none;
+    }
+}
+
+/* === LOAD MORE ("Next") === */
+.load-more-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 35px;
+}
+
+.load-more,
+.retry-button {
+    padding: 12px 28px;
+    background-color: var(--buttons-background-color);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.load-more:hover:not(:disabled),
+.retry-button:hover {
+    background-color: var(--accent-hover-color);
+    border-color: var(--accent-hover-color);
+    color: var(--button-text-color-hover);
+}
+
+.load-more:disabled,
+.popup-submit:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+/* === LOAD ERROR === */
+.error-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 30px 10px;
+    text-align: center;
+    color: var(--error-color);
+}
+
+/* === STATISTICS SUMMARY === */
+.statistics-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 30px;
+    margin: 15px 0 20px;
+    font-size: 13px;
+    color: var(--label-text-color);
+}
+
+.statistics-summary strong {
+    color: var(--main-text-color);
+    font-weight: 700;
+}
+
+.form-error-global {
+    margin-bottom: 12px;
     font-size: 13px;
 }
 
@@ -883,8 +1083,7 @@ body {
         font-size: 10px;
     }
 
-    .teacher-list .teacher-card:nth-child(3)::after,
-    .teacher-list .teacher-card:nth-child(5)::after {
+    .teacher-list .teacher-card.is-favorite::after {
         font-size: 28px;
         top: -3px;
         right: -2px;

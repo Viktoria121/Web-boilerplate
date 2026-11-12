@@ -1,349 +1,419 @@
-import { randomUserMock, additionalUsers } from './mock-data.js';
+export const COURSES = [
+  "Mathematics", "Physics", "English", "Computer Science",
+  "Dancing", "Chess", "Biology", "Chemistry",
+  "Law", "Art", "Medicine", "Statistics"
+];
 
-function main() {
-  console.log("=== [Exercise 1] Formatted & Merged Array ===");
-  const userList = formatArrays(randomUserMock, additionalUsers);
-  console.log(`Total objects: ${userList.length}`);
-  console.log("Sample user:", userList[0]);
-
-  console.log("\n=== [Exercise 2] Validated Users Array ===");
-  const validatedUsers = validateUsers(userList);
-  console.log(`Valid users: ${validatedUsers.length} of ${userList.length}`);
-
-  console.log("\n=== [Exercise 3] Filtered Users Array ===");
-  const filters = {
-    country: ["Germany", "Ukraine", "France"], 
-    ageRange: [20, 70],
-    gender: null,    
-    favorite: null     
-  };
-  const filteredUsers = filterArray(userList, filters);
-  console.log(`Matched filters: ${filteredUsers.length}`);
-
-  console.log("\n=== [Exercise 4] Sorted Users Array ===");
-  const sortedByAge = sortArray(userList, "age", "asc");
-  console.log("Top 3 youngest:");
-  console.table(sortedByAge.slice(0, 3).map(u => ({ Name: u.full_name, Age: u.age, Country: u.country })));
-
-  const sortedByDate = sortArray(userList, "b_date", "asc");
-  console.log("Top 3 by birth date:");
-  console.table(sortedByDate.slice(0, 3).map(u => ({ Name: u.full_name, BirthDate: u.b_date })));
-
-  console.log("\n=== [Exercise 5] Search Users Array ===");
-  const foundUsers = findInArray(userList, "Germany");
-  console.log(`Found by "Germany": ${foundUsers.length}`);
-
-  console.log("\n=== [Exercise 6] Percentage Array ===");
-  const percentage = matchPercentage(userList, user => user.age > 20);
-  console.log(`Percentage over 20 years old: ${percentage.toFixed(2)}%`);
+/**
+ * API не повертає спеціальність, тож призначаємо її самі. Робимо це детерміновано
+ * (хеш від id): той самий викладач завжди має ту саму спеціальність після перезавантаження.
+ */
+function pickCourse(seed) {
+  let hash = 0;
+  for (const char of String(seed)) {
+    hash = (hash * 31 + char.codePointAt(0)) >>> 0;
+  }
+  return COURSES[hash % COURSES.length];
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', main);
-} else {
-  main();
-}
-
-//Exercise 1
-export function formatArrays(...data) {
-  const allUsers = [];
-
-  data.forEach(array => {
-    if (Array.isArray(array)) {
-      for (let user of array) {
-        allUsers.push(formatUser(user));
-      }
-    }
-  });
-
-  const mergedUsers = mergeDuplicates(allUsers);
-
-  // Set missing fields and fix phone format
-  mergedUsers.forEach(user => {
-    fillDefaults(user);
-    user.phone = normalizePhoneNumber(user.phone, user.country);
-  });
-
-  return mergedUsers;
-}
-
-function formatUser(user) {
-  const getString = (val) => typeof val === "string" ? val.trim() : "";
-  const getNumber = (val) => (typeof val === "number" && isFinite(val)) ? val
-    : (typeof val === "string" && val.trim() !== "" && isFinite(Number(val)) ? Number(val) : null);
-  const getBoolean = (val) => typeof val === "boolean" ? val : null;
-  const getObject = (val) => (val && typeof val === "object") ? val : null;
-
-  return {
-    gender: capitalize(getString(user?.gender)),
-    title: getString(user?.name?.title) || getString(user?.title),
-    full_name: getString(`${user?.name?.first || ""} ${user?.name?.last || ""}`.trim()) || getString(user?.full_name),
-    city: getString(user?.location?.city) || getString(user?.city),
-    state: getString(user?.location?.state) || getString(user?.state),
-    country: getString(user?.location?.country) || getString(user?.country),
-    postcode: user?.location?.postcode ?? user?.postcode ?? "",
-    coordinates: getObject(user?.location?.coordinates) || getObject(user?.coordinates),
-    timezone: getObject(user?.location?.timezone) || getObject(user?.timezone),
-    email: getString(user?.email),
-    b_date: getString(user?.dob?.date) || getString(user?.b_date) || getString(user?.b_day),
-    age: getNumber(user?.dob?.age) ?? getNumber(user?.age),
-    phone: getString(user?.phone),
-    picture_large: getString(user?.picture?.large) || getString(user?.picture_large),
-    picture_thumbnail: getString(user?.picture?.thumbnail) || getString(user?.picture_thumbnail),
-
-    id: getString(user?.login?.uuid) || getString(user?.id?.value) || getString(user?.id),
-    favorite: getBoolean(user?.favorite),
-    course: getString(user?.course),
-    bg_color: getString(user?.bg_color),
-    note: getString(user?.note)
-  };
-}
-
-function capitalize(text) {
-  return text ? text[0].toUpperCase() + text.slice(1) : text;
-}
-
-function isEmpty(val) {
-  return val === undefined || val === null || val === "";
-}
-
-// Find duplicates by full name and fill missing values
-function mergeDuplicates(users) {
-  const merged = {};
-  users.forEach(user => {
-    const key = user.full_name.trim().toLowerCase();
-    if (!merged[key]) {
-      merged[key] = { ...user };
-    } else {
-      let existing = merged[key];
-      for (let field in user) {
-        if (isEmpty(existing[field]) && !isEmpty(user[field])) {
-          existing[field] = user[field];
-        }
-      }
-    }
-  });
-  return Object.values(merged);
-}
-
-function fillDefaults(user) {
-  if (isEmpty(user.id)) user.id = generateId();
-  if (typeof user.favorite !== "boolean") user.favorite = getRandomBoolean();
-  if (isEmpty(user.course)) user.course = getRandomDiscipline();
-  if (isEmpty(user.bg_color)) user.bg_color = getRandomColor();
-  if (user.age === null && user.b_date) user.age = calculateAge(user.b_date);
-}
-
-function calculateAge(dateStr) {
-  const birth = new Date(dateStr);
+/**
+ * Повертає кількість повних років від дати народження до сьогодні.
+ * Рахуємо за календарними компонентами (а не за різницею в мс),
+ * щоб не накопичувати похибку через високосні роки.
+ */
+export function calculateAge(dateString) {
+  if (!dateString) return null;
+  const birth = new Date(dateString);
   if (Number.isNaN(birth.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const monthDiff = now.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getUTCFullYear();
+  const monthDiff = today.getMonth() - birth.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getUTCDate())) {
     age--;
   }
   return age;
 }
 
-function getRandomDiscipline() {
-  const courses = [
-    "Mathematics", "Physics", "English", "Computer Science", "Dancing",
-    "Chess", "Biology", "Chemistry", "Law", "Art", "Medicine", "Statistics"
-  ];
-  return courses[Math.floor(Math.random() * courses.length)];
-}
+function normalizeUser(user, index) {
+  const fullName = user.full_name || (user.name ? `${user.name.first} ${user.name.last}` : null);
+  const bDate = user.b_date || user.b_day || user.dob?.date || null;
+  const age = typeof user.age === "number" ? user.age : (user.dob?.age ?? calculateAge(bDate));
+  const id = user.id?.value || (typeof user.id === "string" ? user.id : user.login?.uuid || `user_${index + 1}`);
+  const course = user.course || pickCourse(id);
 
-function getRandomColor() {
-  const cssColors = ["red", "blue", "green", "orange", "purple", "gray"];
-  const hex = () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-  return Math.random() < 0.5 ? cssColors[Math.floor(Math.random() * cssColors.length)] : hex();
-}
-
-function getRandomBoolean() {
-  return Math.random() < 0.5;
-}
-
-function generateId() {
-  return Math.random().toString(36).substring(2, 11);
-}
-
-//Exercise 2
-export function validateUsers(array) {
-  return [...array].filter(user => validateUser(user));
-}
-
-export function validateUser(user) {
-  return isCorrectFullName(user.full_name) &&
-         isSentenceCase(user.gender) &&
-         isSentenceCase(user.city) &&
-         isSentenceCase(user.state) &&
-         isSentenceCase(user.country) &&
-         isCorrectNote(user.note) &&
-         Number.isInteger(user.age) &&
-         isCorrectEmail(user.email) &&
-         isCorrectPhone(user.phone, user.country);
-}
-
-function isCorrectFullName(fullName) {
-  if (!fullName || typeof fullName !== 'string') return false;
-  const words = fullName.trim().split(/\s+/);
-  if (words.length < 2) return false;
-  return words.every(word => word[0] === word[0].toUpperCase());
-}
-
-function isSentenceCase(text) {
-  if (!text || typeof text !== 'string' || text.trim() === "") return false;
-  const trimmed = text.trim();
-  return trimmed[0] === trimmed[0].toUpperCase();
-}
-
-function isCorrectNote(note) {
-  if (note === undefined || note === null) return false;
-  if (typeof note !== 'string') return false;
-  if (note.trim() === "") return true;
-
-  const sentences = note.split(/(?<=[.?!])\s+/);
-  return sentences.every(s => s.trim() === "" || isSentenceCase(s.trim()));
-}
-
-function isCorrectEmail(email) {
-  if (!email || typeof email !== 'string') return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function isCorrectPhone(phone, country) {
-  if (!phone || typeof phone !== 'string') return false;
-  if (!/^\+\d{7,15}$/.test(phone)) return false;
-  const code = getCountryCode(country);
-  return code === null || phone.startsWith('+' + code);
-}
-
-function normalizePhoneNumber(number, country) {
-  if (!number || typeof number !== 'string') return number;
-  const countryCode = getCountryCode(country);
-  let cleaned = number.replace(/[^\d+]/g, '');
-
-  if (cleaned.startsWith('+')) return cleaned;
-  if (cleaned.startsWith('00') && (!countryCode || cleaned.startsWith('00' + countryCode))) {
-    return '+' + cleaned.slice(2);
-  }
-  if (!countryCode) return cleaned;
-  if (cleaned.startsWith('0')) return '+' + countryCode + cleaned.slice(1);
-  return '+' + countryCode + cleaned;
-}
-
-function getCountryCode(country) {
-  const codes = {
-    "Germany": "49", "France": "33", "Italy": "39", "Spain": "34", "Ukraine": "380",
-    "United Kingdom": "44", "United States": "1", "USA": "1", "Canada": "1", "Japan": "81",
-    "South Korea": "82", "China": "86", "India": "91", "Australia": "61", "New Zealand": "64",
-    "Brazil": "55", "Argentina": "54", "Mexico": "52", "South Africa": "27", "Egypt": "20",
-    "Nigeria": "234", "Kenya": "254", "Turkey": "90", "Saudi Arabia": "966", "United Arab Emirates": "971",
-    "Israel": "972", "Pakistan": "92", "Bangladesh": "880", "Indonesia": "62", "Thailand": "66",
-    "Vietnam": "84", "Philippines": "63", "Malaysia": "60", "Singapore": "65", "Iran": "98",
-    "Iraq": "964", "Greece": "30", "Netherlands": "31", "Belgium": "32", "Sweden": "46",
-    "Norway": "47", "Denmark": "45", "Finland": "358", "Poland": "48", "Czech Republic": "420",
-    "Hungary": "36", "Austria": "43", "Switzerland": "41", "Portugal": "351", "Ireland": "353", "Romania": "40"
+  return {
+    id,
+    gender: user.gender ? user.gender[0].toUpperCase() + user.gender.slice(1) : null,
+    title: user.title || user.name?.title || null,
+    full_name: fullName,
+    city: user.city || user.location?.city || null,
+    state: user.state || user.location?.state || null,
+    country: user.country || user.location?.country || null,
+    postcode: user.postcode || user.location?.postcode || null,
+    coordinates: user.coordinates || user.location?.coordinates || null,
+    timezone: user.timezone || user.location?.timezone || null,
+    email: user.email || null,
+    b_date: bDate,
+    age,
+    phone: user.phone || null,
+    picture_large: user.picture_large || user.picture?.large || null,
+    picture_thumbnail: user.picture_thumbnail || user.picture?.thumbnail || null,
+    favorite: typeof user.favorite === "boolean" ? user.favorite : false,
+    course,
+    bg_color: user.bg_color || "#ffffff",
+    note: user.note || null,
   };
-  return codes[country] ?? null;
 }
 
-//Exercise 3
-export function filterArray(usersArray, filters) {
-  return [...usersArray].filter(user => {
-    const genderMatch =
-      filters.gender !== null && filters.gender !== undefined
-        ? String(user.gender).toLowerCase() === String(filters.gender).toLowerCase()
-        : true;
+// Завдання 1
+export function formatTeachers(primUsers = [], secUsers = []) {
+  const map = new Map();
+  const allUsers = [...primUsers, ...secUsers];
 
-    const favoriteMatch =
-      filters.favorite !== null && filters.favorite !== undefined
-        ? user.favorite === filters.favorite
-        : true;
+  allUsers.forEach((user, index) => {
+    const normalized = normalizeUser(user, index);
+    const key = normalized.full_name ? normalized.full_name.toLowerCase() : normalized.id;
 
-    const countryMatch =
-      Array.isArray(filters.country) && filters.country.length > 0
-        ? filters.country.includes(user.country)
-        : true;
+    if (!map.has(key)) {
+      map.set(key, normalized);
+    }
+  });
 
-    const ageMatch =
-      Array.isArray(filters.ageRange) && filters.ageRange.length === 2
-        ? Number.isFinite(user.age) && user.age >= filters.ageRange[0] && user.age <= filters.ageRange[1]
-        : true;
+  return Array.from(map.values());
+}
 
-    return genderMatch && favoriteMatch && countryMatch && ageMatch;
+// Завдання 2
+const phoneFormats = {
+  Germany: /^\d{4}-\d{7}$/,
+  Ireland: /^\d{3}-\d{3}-\d{4}$/,
+  Australia: /^\d{2}-\d{4}-\d{4}$/,
+  "United States": /^\(\d{3}\)-\d{3}-\d{4}$/,
+  Finland: /^\d{2}-\d{3}-\d{3}$/,
+  Turkey: /^\(\d{3}\)-\d{3}-\d{4}$/,
+  Switzerland: /^\d{3}\s\d{3}\s\d{2}\s\d{2}$/,
+  "New Zealand": /^\(\d{3}\)-\d{3}-\d{4}$/,
+  Spain: /^\d{3}-\d{3}-\d{3}$/,
+  Norway: /^\d{8}$/,
+  Denmark: /^\d{8}$/,
+  Iran: /^\d{3}-\d{8}$/,
+  Canada: /^\d{3}-\d{3}-\d{4}$/,
+  France: /^\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/,
+  Netherlands: /^\(\d{3}\)-\d{3}-\d{4}$/,
+};
+
+const phoneExamples = {
+  Germany: "0151-1234567",
+  Ireland: "081-234-5678",
+  Australia: "04-1234-5678",
+  "United States": "(555)-123-4567",
+  Finland: "04-123-456",
+  Turkey: "(555)-123-4567",
+  Switzerland: "078 123 45 67",
+  "New Zealand": "(021)-123-4567",
+  Spain: "612-345-678",
+  Norway: "12345678",
+  Denmark: "12345678",
+  Iran: "091-12345678",
+  Canada: "613-555-0123",
+  France: "06-12-34-56-78",
+  Netherlands: "(061)-234-5678",
+};
+
+export function getPhoneExample(country) {
+  return phoneExamples[country] ?? null;
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isCapitalized(value) {
+  if (typeof value !== "string" || value.length === 0) return false;
+  return /^[\p{Lu}\p{Lo}]/u.test(value);
+}
+
+/**
+ * Повертає об'єкт { поле: повідомлення } з усіма помилками валідації.
+ * Порожній об'єкт — викладач валідний.
+ */
+export function getTeacherErrors(teacher) {
+  if (!teacher || typeof teacher !== "object") {
+    return { _form: "Teacher data is missing" };
+  }
+
+  const errors = {};
+
+  const capitalizedFields = {
+    full_name: "Name",
+    state: "State",
+    city: "City",
+    country: "Country",
+  };
+  for (const [field, label] of Object.entries(capitalizedFields)) {
+    if (!isCapitalized(teacher[field])) {
+      errors[field] = `${label} is required and must start with a capital letter`;
+    }
+  }
+
+  if (!isCapitalized(teacher.gender)) {
+    errors.gender = "Select a gender";
+  }
+
+  if (typeof teacher.course !== "string" || teacher.course.trim() === "") {
+    errors.course = "Select a speciality";
+  }
+
+  if (teacher.note !== null && teacher.note !== undefined && !isCapitalized(teacher.note)) {
+    errors.note = "Notes must start with a capital letter";
+  }
+
+  if (typeof teacher.age !== "number" || Number.isNaN(teacher.age) || teacher.age <= 0) {
+    errors.age = "Enter a valid date of birth (not in the future)";
+  }
+
+  if (typeof teacher.email !== "string" || !EMAIL_PATTERN.test(teacher.email)) {
+    errors.email = "Enter a valid email, for example name@example.com";
+  }
+
+  if (typeof teacher.phone !== "string" || teacher.phone.trim() === "") {
+    errors.phone = "Phone is required";
+  } else {
+    const format = phoneFormats[teacher.country];
+    if (format && !format.test(teacher.phone)) {
+      errors.phone = `Phone for ${teacher.country} must look like ${phoneExamples[teacher.country]}`;
+    }
+  }
+
+  return errors;
+}
+
+export function validateTeacher(teacher) {
+  return Object.keys(getTeacherErrors(teacher)).length === 0;
+}
+
+// Завдання 3: Фільтрація
+// filters.age — або точне число, або діапазон { min, max } (обидві межі включно, кожна необов'язкова).
+function matchesAge(teacherAge, ageFilter) {
+  if (ageFilter === undefined || ageFilter === null) return true;
+  if (typeof ageFilter === "number") return teacherAge === ageFilter;
+  if (typeof teacherAge !== "number") return false;
+
+  const { min = -Infinity, max = Infinity } = ageFilter;
+  return teacherAge >= min && teacherAge <= max;
+}
+
+export function filterTeachers(teachers, filters = {}) {
+  if (!Array.isArray(teachers)) return [];
+
+  return teachers.filter((teacher) => {
+    if (filters.country && teacher.country?.toLowerCase() !== filters.country.toLowerCase()) {
+      return false;
+    }
+    if (filters.gender && teacher.gender?.toLowerCase() !== filters.gender.toLowerCase()) {
+      return false;
+    }
+    if (!matchesAge(teacher.age, filters.age)) {
+      return false;
+    }
+    if (filters.favorite !== undefined && filters.favorite !== null && teacher.favorite !== filters.favorite) {
+      return false;
+    }
+    if (filters.withPhoto && !(teacher.picture_large || teacher.picture_thumbnail)) {
+      return false;
+    }
+    return true;
   });
 }
 
-//Exercise 4
-export function sortArray(usersArray, key, order = "asc") {
-  const sortKeys = { b_day: "b_date", date: "b_date" };
-  const field = sortKeys[key] ?? key;
-  const direction = order === "asc" ? 1 : -1;
+// Завдання 4: Сортування
+const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
-  const getValue = user => {
-    if (field === "b_date") {
-      const time = new Date(user[field]).getTime();
+function isMissing(value) {
+  return value === null || value === undefined || value === "" || Number.isNaN(value);
+}
+
+export function sortTeachers(teachers, sortBy = "full_name", order = "asc") {
+  if (!Array.isArray(teachers)) return [];
+
+  const direction = order === "desc" ? -1 : 1;
+  const isDateKey = sortBy === "b_day" || sortBy === "b_date";
+
+  const readValue = (teacher) => {
+    if (isDateKey) {
+      const time = new Date(teacher.b_date || NaN).getTime();
       return Number.isNaN(time) ? null : time;
     }
-    return user[field];
+    return teacher[sortBy];
   };
 
-  const isInvalid = val => val === undefined || val === null || val === "" || Number.isNaN(val);
+  return [...teachers].sort((a, b) => {
+    const valA = readValue(a);
+    const valB = readValue(b);
 
-  return [...usersArray].sort((a, b) => {
-    const left = getValue(a);
-    const right = getValue(b);
+    // Порожні значення завжди в кінці, незалежно від напрямку.
+    const missingA = isMissing(valA);
+    const missingB = isMissing(valB);
+    if (missingA && missingB) return 0;
+    if (missingA) return 1;
+    if (missingB) return -1;
 
-    if (isInvalid(left) || isInvalid(right)) {
-      return isInvalid(left) - isInvalid(right);
-    }
+    const result = typeof valA === "number" && typeof valB === "number"
+      ? valA - valB
+      : collator.compare(String(valA), String(valB));
 
-    if (typeof left === "string") {
-      return direction * left.localeCompare(String(right));
-    }
-    return direction * (left - right);
+    return result * direction;
   });
 }
 
-//Exercise 5
-export function findInArray(usersArray, search) {
-  const searchTerms = String(search).toLowerCase().split(/\s+/).filter(t => t !== "");
-  if (searchTerms.length === 0) return [];
+// Завдання 5: Пошук (ім'я, коментар, вік)
+export function matchesQuery(teacher, query) {
+  const q = String(query ?? "").trim().toLowerCase();
+  if (!q) return false;
 
-  const isMatchWord = word => searchTerms.some(term => word.startsWith(term));
-
-  return usersArray.filter(user => {
-    for (let key in user) {
-      let value = user[key];
-
-      if (typeof value === "boolean" || value == null) continue;
-
-      if (typeof value === "number") {
-        if (searchTerms.includes(String(value))) return true;
-      } else if (typeof value === "string") {
-        const words = value.toLowerCase().split(/\s+/);
-        if (words.some(word => isMatchWord(word))) return true;
-      } else if (Array.isArray(value)) {
-        if (value.some(item => searchTerms.includes(String(item).toLowerCase()))) return true;
-      } else if (typeof value === "object") {
-        if (findInArray([value], search).length > 0) return true;
-      }
-    }
-    return false;
-  });
+  return Boolean(
+    teacher.full_name?.toLowerCase().includes(q) ||
+    teacher.note?.toLowerCase().includes(q) ||
+    String(teacher.age) === q
+  );
 }
 
-//Exercise 6
-export function matchPercentage(usersArray, conditionFn) {
-  if (typeof conditionFn !== "function") {
-    throw new Error("Condition must be a function");
+/** Усі викладачі, що відповідають запиту. Порожній запит повертає повний список. */
+export function searchTeachers(teachers, query) {
+  if (!Array.isArray(teachers)) return [];
+  if (!String(query ?? "").trim()) return [...teachers];
+  return teachers.filter((teacher) => matchesQuery(teacher, query));
+}
+
+export function findTeacher(teachers, query) {
+  if (!teachers || !query || teachers.length === 0) {
+    return null;
+  }
+  return teachers.find((teacher) => matchesQuery(teacher, query)) || null;
+}
+
+// Завдання 6: Відсоток співпадінь
+export function getTeacherPercentage(teachers, condition) {
+  if (!teachers || teachers.length === 0 || !condition) return 0;
+
+  const matched = teachers.filter((teacher) =>
+    typeof condition === "function" ? condition(teacher) : matchesQuery(teacher, condition)
+  );
+
+  return Math.round((matched.length / teachers.length) * 100);
+}
+
+// Додавання викладача (форма)
+function generateId() {
+  return globalThis.crypto?.randomUUID?.() ?? `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cleanString(value) {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed === "" ? null : trimmed;
+}
+
+/**
+ * Створює нового викладача з даних форми й перевіряє його.
+ * Нічого не мутує: повертає { teacher, errors }.
+ * Якщо є помилки — teacher === null.
+ */
+export function createTeacher(input, existingTeachers = []) {
+  const gender = cleanString(input.gender);
+  const bDate = cleanString(input.b_date);
+
+  const draft = {
+    id: generateId(),
+    gender: gender ? gender[0].toUpperCase() + gender.slice(1).toLowerCase() : null,
+    title: null,
+    full_name: cleanString(input.full_name),
+    city: cleanString(input.city),
+    state: cleanString(input.state),
+    country: cleanString(input.country),
+    postcode: null,
+    coordinates: null,
+    timezone: null,
+    email: cleanString(input.email),
+    b_date: bDate,
+    age: calculateAge(bDate),
+    phone: cleanString(input.phone),
+    picture_large: null,
+    picture_thumbnail: null,
+    favorite: false,
+    course: cleanString(input.course),
+    bg_color: cleanString(input.bg_color) ?? "#ffffff",
+    note: cleanString(input.note),
+  };
+
+  const errors = getTeacherErrors(draft);
+
+  const nameKey = draft.full_name?.toLowerCase();
+  if (!errors.full_name && existingTeachers.some((t) => t.full_name?.toLowerCase() === nameKey)) {
+    errors.full_name = "A teacher with this name already exists";
   }
 
-  const total = usersArray.length;
-  if (total === 0) return 0;
+  return Object.keys(errors).length > 0
+    ? { teacher: null, errors }
+    : { teacher: draft, errors: {} };
+}
 
-  const matched = usersArray.filter(user => conditionFn(user)).length;
-  return (matched / total) * 100;
+// Дані з API
+
+/**
+ * Повний шлях сирих даних API до готових викладачів:
+ * нормалізація -> видалення дублікатів -> валідація.
+ * Невалідні записи не потрапляють у список, але повертаються окремо (для логів і статистики).
+ */
+export function ingestUsers(rawUsers) {
+  const teachers = [];
+  const rejected = [];
+
+  for (const teacher of formatTeachers(Array.isArray(rawUsers) ? rawUsers : [])) {
+    const errors = getTeacherErrors(teacher);
+    if (Object.keys(errors).length === 0) {
+      teachers.push(teacher);
+    } else {
+      rejected.push({ teacher, errors });
+    }
+  }
+
+  return { teachers, rejected };
+}
+
+/**
+ * Додає нових викладачів до наявних, пропускаючи дублікати (за id та за іменем).
+ * Нічого не мутує. Повертає { merged, added }.
+ */
+export function mergeUniqueTeachers(existing, incoming) {
+  const ids = new Set(existing.map((t) => String(t.id)));
+  const names = new Set(existing.map((t) => t.full_name?.toLowerCase()).filter(Boolean));
+  const added = [];
+
+  for (const teacher of incoming) {
+    const name = teacher.full_name?.toLowerCase();
+    if (ids.has(String(teacher.id)) || (name && names.has(name))) continue;
+
+    ids.add(String(teacher.id));
+    if (name) names.add(name);
+    added.push(teacher);
+  }
+
+  return { merged: [...existing, ...added], added };
+}
+
+// Статистика
+/**
+ * Зведена статистика для блоку Statistics.
+ * visible — викладачі після фільтрів і пошуку, all — усі завантажені.
+ */
+export function calculateStatistics(visible, all) {
+  const ages = visible.map((t) => t.age).filter((age) => typeof age === "number");
+  const averageAge = ages.length > 0
+    ? Math.round((ages.reduce((sum, age) => sum + age, 0) / ages.length) * 10) / 10
+    : null;
+
+  return {
+    total: all.length,
+    shown: visible.length,
+    averageAge,
+    favoritesPercent: getTeacherPercentage(visible, (t) => t.favorite),
+  };
 }
